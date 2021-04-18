@@ -1,13 +1,40 @@
 spring:
-  datasource:
-    node1:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/es?characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
-      username: ysl
-      password: ysl123456
+  main:
+    allow-bean-definition-overriding: true
+  shardingsphere:
+    datasource:
+      names: node1,node2
+      node1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/es?characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+        username: ysl
+        password: ysl123456
+      node2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/es_b?characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+        username: ysl
+        password: ysl123456
+    sharding:
+      default-database-strategy:
+#        inline:
+#          sharding-column: doc_id
+#          algorithm-expression: node$->{Integer.parseInt(doc_id) % 2 + 1}
+        complex:
+          sharding-columns: doc_id,index_name
+          algorithm-class-name: com.utils.ShardingAlgorithm
+      tables:
+        es_mapping:
+          actual-data-nodes: node$->{1..2}.es_mapping
+    props:
+      sql:
+        show: true
   kafka:
     producer:
       bootstrap-servers: localhost:9092
       transaction-id-prefix: tran.
     consumer:
       bootstrap-servers: localhost:9092
+mybatis:
+  mapper-locations: classpath*:mapper/EsMappingMapper.xml

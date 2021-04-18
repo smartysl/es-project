@@ -1,4 +1,4 @@
-package com.ResponseTemplate;
+package com.responseTemplate;
 
 public class TransactionResponseTemplate {
 

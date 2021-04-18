@@ -16,13 +16,8 @@ public class GetService extends DataService{
     @Autowired
     EsMappingMapper esMappingMapper;
 
-
     public GetServiceResult getDocument(String transId, String indexName, String documentId){
-        DataServiceResult checkResult = checkTransactionState(transId);
-        GetServiceResult result = new GetServiceResult(checkResult.getErrorNo(), checkResult.getErrorMsg(), null);
-        if(result.getErrorNo() != 0) {
-            return result;
-        }
+        GetServiceResult result = new GetServiceResult(0, "", null);
         try {
             //System.out.println(resourceManager.getEsRoutedNodeName(indexName, documentId));
             System.out.println(esMappingMapper.selectVersion("demo", "1"));

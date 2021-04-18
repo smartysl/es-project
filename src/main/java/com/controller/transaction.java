@@ -1,7 +1,7 @@
 package com.controller;
 
-import com.ResponseTemplate.TransactionCreateResponse;
-import com.ResponseTemplate.TransactionResponseTemplate;
+import com.responseTemplate.TransactionCreateResponse;
+import com.responseTemplate.TransactionResponseTemplate;
 import com.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;

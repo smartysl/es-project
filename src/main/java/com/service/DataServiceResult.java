@@ -4,7 +4,7 @@ public class DataServiceResult {
     private Integer errorNo;
     private String errorMsg;
 
-    DataServiceResult(Integer errorNo, String errorMsg) {
+    public DataServiceResult(Integer errorNo, String errorMsg) {
         this.errorNo = errorNo;
         this.errorMsg = errorMsg;
     }

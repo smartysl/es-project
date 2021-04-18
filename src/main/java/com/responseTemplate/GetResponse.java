@@ -1,4 +1,4 @@
-package com.ResponseTemplate;
+package com.responseTemplate;
 
 import java.util.Map;
 

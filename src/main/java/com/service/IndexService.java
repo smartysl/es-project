@@ -9,10 +9,7 @@ import java.util.Map;
 public class IndexService extends DataService{
 
     public DataServiceResult indexDocument(String transId, String indexName, String documentId, Map<String, Object> data) {
-        DataServiceResult result = checkTransactionState(transId);
-        if(result.getErrorNo() != 0) {
-            return result;
-        }
+        DataServiceResult result = new DataServiceResult(0, "");
         transactionManager.addTransactionOperator(transId, Operator.OperatorType.INDEX, indexName, documentId, data);
         return result;
     }

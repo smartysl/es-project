@@ -1,7 +1,7 @@
 package com.controller;
 
-import com.ResponseTemplate.DataResponseTemplate;
-import com.ResponseTemplate.GetResponse;
+import com.responseTemplate.DataResponseTemplate;
+import com.responseTemplate.GetResponse;
 import com.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

@@ -112,19 +112,4 @@ public class ResourceManager {
             throw e;
         }
     }
-
-    @Cacheable(cacheNames = {"route"})
-    public String getEsRoutedNodeName(String indexName, String routing) throws JsonProcessingException {
-        String url = String.format("http://localhost:9200/%s/_search_shards?routing=%s", indexName, routing);
-        Object jsonResponse = restTemplate.getForObject(url, Object.class);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> metaData = mapper.readValue(mapper.writeValueAsString(jsonResponse), new TypeReference<Map<String, Object>>() {});
-        List<List<Map<String, Object>>> shards = (List<List<Map<String, Object>>>) metaData.get("shards");
-        for(Map<String, Object> shard: shards.get(0)){
-            if((Boolean) shard.get("primary")) {
-                return (String) shard.get("node");
-            }
-        }
-        return null;
-    }
 }

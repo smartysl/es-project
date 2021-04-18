@@ -6,8 +6,10 @@
     <select id="selectVersion" resultType="java.lang.Integer">
         select version from es_mapping where doc_id = #{docId} and index_name = #{indexName};
     </select>
-
     <select id="selectTimeStamp" resultType="java.lang.String">
-        select timeStamp from es_mapping_table where doc_id = #{docId} and index_name = #{indexName};
+        select timeStamp from es_mapping where doc_id = #{docId} and index_name = #{indexName};
     </select>
+    <insert id="insertEsMapping">
+        insert into es_mapping(doc_id, index_name, timestamp, version) values (#{docId}, #{indexName}, #{timestamp}, 1);
+    </insert>
 </mapper>
