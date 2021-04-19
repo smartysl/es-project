@@ -10,4 +10,16 @@
     <select id="selectTimeStamp" resultType="java.lang.String">
         select timeStamp from es_mapping_table where doc_id = #{docId} and index_name = #{indexName};
     </select>
+
+    <select id="selectGlobalTransaction" resultMap="java.lang.String">
+        select global_transactions from es_mapping_table where doc_id = #{docId} and index_name = #{indexName};
+    </select>
+
+    <insert id="insertEsMapping">
+        insert into es_mapping_table values (index_name = #{indexName}, doc_id = #{docId}, global_transactions = "");
+    </insert>
+
+    <update id="updateEsMappingOnlyLock">
+        update es_mapping_table set doc_id = #{docId} where index_name = #{indexName} and doc_id = #{docId};
+    </update>
 </mapper>

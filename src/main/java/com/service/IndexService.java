@@ -1,6 +1,6 @@
 package com.service;
 
-import com.manager.Operator;
+import com.manager.EsOperator;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
@@ -13,7 +13,7 @@ public class IndexService extends DataService{
         if(result.getErrorNo() != 0) {
             return result;
         }
-        transactionManager.addTransactionOperator(transId, Operator.OperatorType.INDEX, indexName, documentId, data);
+        transactionManager.addTransactionOperator(transId, EsOperator.OperatorType.INDEX, indexName, documentId, data);
         return result;
     }
 }

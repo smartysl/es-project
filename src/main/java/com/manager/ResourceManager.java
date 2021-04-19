@@ -40,9 +40,9 @@ public class ResourceManager {
     }
 
     @Async("operatorPool")
-    public void writeEsDocuments(List<Operator> operators) {
+    public void writeEsDocuments(List<EsOperator> esOperators) {
         Long timeStamp = System.currentTimeMillis();
-        operators.forEach(operator -> {
+        esOperators.forEach(operator -> {
             operator.getData().put("_timestamp", timeStamp);
             try {
                 doWriteEsDocument(
@@ -57,7 +57,7 @@ public class ResourceManager {
         });
     }
 
-    private void doWriteEsDocument(Operator.OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) throws IOException {
+    private void doWriteEsDocument(EsOperator.OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) throws IOException {
 
         switch (operatorType) {
             case INDEX -> indexEsDocument(indexName, documentId, data);

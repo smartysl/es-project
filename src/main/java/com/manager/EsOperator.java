@@ -2,7 +2,7 @@ package com.manager;
 
 import java.util.Map;
 
-public class Operator {
+public class EsOperator {
 
     public enum OperatorType {
         INDEX, CREATE, UPDATE, DELETE;
@@ -13,7 +13,7 @@ public class Operator {
     private String documentId;
     private Map<String, Object> data;
 
-    public Operator(OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) {
+    public EsOperator(OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) {
         this.operatorType = operatorType;
         this.indexName = indexName;
         this.documentId = documentId;
