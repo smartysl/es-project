@@ -5,7 +5,21 @@ import java.util.Map;
 public class EsOperator {
 
     public enum OperatorType {
-        INDEX, CREATE, UPDATE, DELETE;
+        INDEX("index"),
+        CREATE("create"),
+        UPDATE("update"),
+        DELETE("delete");
+
+        private final String formatted;
+
+        OperatorType(String formatted) {
+            this.formatted = formatted;
+        }
+
+        @Override
+        public String toString() {
+            return this.formatted;
+        }
     }
 
     private OperatorType operatorType;
@@ -19,6 +33,8 @@ public class EsOperator {
         this.documentId = documentId;
         this.data = data;
     }
+
+    public EsOperator() {}
 
     public OperatorType getOperatorType() {
         return operatorType;

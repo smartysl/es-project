@@ -14,4 +14,8 @@ public interface GlobalTransactionMapper {
 
     List<Map<String, Integer>> queryAllTransactionStatus();
 
+    void insertGlobalTransaction(Integer transId, Integer status);
+
+    void updateGlobalTransactionStatus(Integer transId, Integer status);
+
 }

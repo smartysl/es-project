@@ -1,38 +1,22 @@
 package com.manager.strategy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.manager.DBOperator;
-import com.manager.EsOperator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * @author yushilin
  * @date 2021/4/16 3:15 下午
  */
 @Service
-public class XAPreHandler extends BaseHandler{
+public class XAHandler extends BaseHandler{
 
     @Override
-    public void preHandle(List<DBOperator> dbOperatorList, List<EsOperator> esOperatorList) {
-        doPreHandle(dbOperatorList, esOperatorList);
-    }
-
-    @Transactional
-    private void doPreHandle(List<DBOperator> dbOperatorList, List<EsOperator> esOperatorList) {
-        IntStream.range(0,dbOperatorList.size()).forEach(i -> {
-            DBOperator dbOperator = dbOperatorList.get(i);
-            EsOperator esOperator = esOperatorList.get(i);
-            doOperate(dbOperator);
-            try {
-                sendMessage(esOperator);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-        });
+    @Transactional(value = "xaManager")
+    public void preHandle(List<DBOperator> dbOperatorList,Integer transId) {
+        dbOperatorList.forEach(this::doOperate);
     }
 
     private void doOperate(DBOperator dbOperator) {

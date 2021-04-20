@@ -1,23 +1,20 @@
 package com.manager;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -25,45 +22,39 @@ public class ResourceManager {
 
     @Autowired
     RestHighLevelClient restHighLevelClient;
-    @Autowired
-    RestTemplate restTemplate;
 
-    public Map<String, Object> getEsDocument(String indexName, String documentId) throws IOException {
-        GetRequest getRequest = new GetRequest(indexName).id(documentId);
+    @Value("${app.test}")
+    private boolean test;
+
+    private static final Logger log = LoggerFactory.getLogger(ResourceManager.class);
+
+    public ClusterHealthStatus getClusterHealthyStatus() {
+        if(test) {
+            return ClusterHealthStatus.GREEN;
+        }
         try {
-            GetResponse response = restHighLevelClient.get(getRequest, RequestOptions.DEFAULT);
-            return response.getSourceAsMap();
+            ClusterHealthResponse healthResponse = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
+            return healthResponse.getStatus();
         } catch (IOException e) {
             e.printStackTrace();
-            throw e;
         }
+        return null;
     }
 
-    @Async("operatorPool")
-    public void writeEsDocuments(List<EsOperator> esOperators) {
-        Long timeStamp = System.currentTimeMillis();
-        esOperators.forEach(operator -> {
-            operator.getData().put("_timestamp", timeStamp);
-            try {
-                doWriteEsDocument(
-                        operator.getOperatorType(),
-                        operator.getIndexName(),
-                        operator.getDocumentId(),
-                        operator.getData()
-                );
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    private void doWriteEsDocument(EsOperator.OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) throws IOException {
-
+    public void doWriteEsDocument(EsOperator.OperatorType operatorType, String indexName, String documentId, Map<String, Object> data) throws IOException {
+        log.info("[Es数据写入] 类型={}, indexName={}, docId={}, data={}", operatorType, indexName, documentId, data);
+        if(test) {
+            return;
+        }
         switch (operatorType) {
-            case INDEX -> indexEsDocument(indexName, documentId, data);
-            case CREATE -> createEsDocument(indexName, documentId, data);
-            case UPDATE -> updateEsDocument(indexName, documentId, data);
-            case DELETE -> deleteEsDocument(indexName, documentId);
+            case INDEX:
+                indexEsDocument(indexName, documentId, data);
+            case CREATE:
+                createEsDocument(indexName, documentId, data);
+            case UPDATE:
+                updateEsDocument(indexName, documentId, data);
+            case DELETE:
+                deleteEsDocument(indexName, documentId);
         }
     }
 
@@ -111,20 +102,5 @@ public class ResourceManager {
             e.printStackTrace();
             throw e;
         }
-    }
-
-    @Cacheable(cacheNames = {"route"})
-    public String getEsRoutedNodeName(String indexName, String routing) throws JsonProcessingException {
-        String url = String.format("http://localhost:9200/%s/_search_shards?routing=%s", indexName, routing);
-        Object jsonResponse = restTemplate.getForObject(url, Object.class);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> metaData = mapper.readValue(mapper.writeValueAsString(jsonResponse), new TypeReference<Map<String, Object>>() {});
-        List<List<Map<String, Object>>> shards = (List<List<Map<String, Object>>>) metaData.get("shards");
-        for(Map<String, Object> shard: shards.get(0)){
-            if((Boolean) shard.get("primary")) {
-                return (String) shard.get("node");
-            }
-        }
-        return null;
     }
 }

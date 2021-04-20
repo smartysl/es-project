@@ -3,7 +3,17 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.dao.mapper.GlobalTransactionMapper">
+
     <select id="queryAllTransactionStatus" resultType="map">
-        select id,status from global_transaction_table where status in (0,1);
+        select id,status from global_transaction where status in (0,1);
     </select>
+
+    <insert id="insertGlobalTransaction">
+        insert into global_transaction(id, status) values(#{transId}, #{status});
+    </insert>
+
+    <update id="updateGlobalTransactionStatus">
+        update global_transaction set status = #{status} where id = #{transId};
+    </update>
+
 </mapper>

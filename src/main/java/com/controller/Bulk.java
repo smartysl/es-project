@@ -1,6 +1,6 @@
 package com.controller;
 
-import com.ResponseTemplate.TransactionResponseTemplate;
+import com.responseTemplate.TransactionResponseTemplate;
 import com.manager.EsOperator;
 import com.service.BulkService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +30,10 @@ public class Bulk {
 
     private List<EsOperator> convertToOperator() {
         List<EsOperator> esOperators = new ArrayList<>();
-        esOperators.add(new EsOperator(EsOperator.OperatorType.CREATE, "demo", "1", new HashMap<>() {{
+        esOperators.add(new EsOperator(EsOperator.OperatorType.UPDATE, "demo", "3", new HashMap<>() {{
+            put("name", "ysl");
+        }}));
+        esOperators.add(new EsOperator(EsOperator.OperatorType.UPDATE, "demo", "4", new HashMap<>() {{
             put("name", "ysl");
         }}));
         return esOperators;

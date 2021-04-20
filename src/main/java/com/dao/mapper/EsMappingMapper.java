@@ -1,13 +1,6 @@
 package com.dao.mapper;
 
-import org.apache.ibatis.annotations.Mapper;
-
-@Mapper
-public interface EsMappingMapper {
-
-    Integer selectVersion(String indexName, String docId);
-
-    Long selectTimeStamp(String indexName, String id);
+public interface EsMappingMapper{
 
     void insertEsMapping(String indexName, String docId);
 

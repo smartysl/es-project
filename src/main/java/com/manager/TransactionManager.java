@@ -2,8 +2,6 @@ package com.manager;
 
 import com.dao.mapper.EsMappingMapper;
 import com.dao.mapper.GlobalTransactionMapper;
-import com.manager.strategy.PercolatorPreHandler;
-import com.manager.strategy.PreHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,8 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 @Configuration
 public class TransactionManager {
@@ -34,6 +30,7 @@ public class TransactionManager {
         private TransactionState transactionState = TransactionState.UNCOMMITTED;
         private List<EsOperator> esOperatorList;
         private List<DBOperator> dbOperatorList;
+        private Integer id;
 
         public List<DBOperator> getDbOperatorList() {
             return dbOperatorList;
@@ -44,6 +41,7 @@ public class TransactionManager {
         }
 
         Transaction(Integer id) {
+            this.id = id;
         }
 
         public TransactionState getTransactionState() {
@@ -61,13 +59,21 @@ public class TransactionManager {
         public void setEsOperatorList(List<EsOperator> esOperatorList) {
             this.esOperatorList = esOperatorList;
         }
+
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
     }
 
     public static class TransactionView {
 
-        private Integer lastTransaction;
+        private Integer lastTransaction = 0;
 
-        private Integer currentTransaction;
+        private Integer currentTransaction = 0;
 
         public Integer getLastTransaction() {
             return lastTransaction;
@@ -101,37 +107,35 @@ public class TransactionManager {
         return transaction;
     }
 
-    @Transactional
-    public TransactionView updateGlobalTransaction(String indexName, String documentId, Map<Integer, Integer> transactionStatusMap) {
+    @Transactional(value = "xaManager")
+    public TransactionView updateGlobalTransaction(String indexName, String documentId, Integer currentTransId, Map<Integer, Integer> transactionStatusMap) {
         List<Integer> globalTransactions = Arrays.stream(esMappingMapper.selectGlobalTransaction(indexName, documentId).split(","))
+                .filter(s -> s.length() > 0)
                 .map(Integer::valueOf).sorted().collect(Collectors.toList());
         Collections.reverse(globalTransactions);
 
-
-        TransactionView transactionView = new TransactionView();
-        if (globalTransactions.size() == 0) {
-            transactionView.setCurrentTransaction(0);
-            transactionView.setLastTransaction(0);
-            return transactionView;
+        List<String> newGlobalTransactions = new ArrayList<>();
+        if(!Objects.isNull(currentTransId)) {
+            newGlobalTransactions.add(String.valueOf(currentTransId));
         }
 
-        List<Integer> newGlobalTransactions = new ArrayList<>();
+        TransactionView transactionView = new TransactionView();
         boolean isFirstCommit = false;
-
         for(Integer transaction: globalTransactions) {
             if(Objects.equals(transactionStatusMap.get(transaction), TransactionState.COMMITTED.getState()) && !isFirstCommit) {
                 isFirstCommit = true;
                 transactionView.setCurrentTransaction(transaction);
-                newGlobalTransactions.add(transaction);
+                transactionView.setLastTransaction(Math.max(transactionView.getLastTransaction(), transaction));
+                newGlobalTransactions.add(String.valueOf(transaction));
             } else if(Objects.equals(transactionStatusMap.get(transaction), TransactionState.UNCOMMITTED.getState())) {
-                transactionView.setLastTransaction(Math.max(transactionView.getLastTransaction(), newGlobalTransactions.get(transaction)));
-                newGlobalTransactions.add(globalTransactions.get(transaction));
+                transactionView.setLastTransaction(Math.max(transactionView.getLastTransaction(), transaction));
+                newGlobalTransactions.add(String.valueOf(transaction));
             }
         }
 
-        //TODO
+        esMappingMapper.updateGlobalTransaction(indexName, documentId, String.join(",", newGlobalTransactions));
 
-        return null;
+        return transactionView;
     }
 
     public Map<Integer, Integer> queryAllTransactionStatus() {
@@ -140,6 +144,18 @@ public class TransactionManager {
                         (Map<String, Integer> item) -> item.get("id"),
                         (Map<String, Integer> item) -> item.get("status")
                 ));
+    }
+
+    public void beginTransaction(Integer transId) {
+        globalTransactionMapper.insertGlobalTransaction(transId, TransactionState.UNCOMMITTED.getState());
+    }
+
+    public void rollbackTransaction(Integer transId) {
+        globalTransactionMapper.updateGlobalTransactionStatus(transId, TransactionState.ROLLBACK.getState());
+    }
+
+    public void commitTransaction(Integer transId) {
+        globalTransactionMapper.updateGlobalTransactionStatus(transId, TransactionState.COMMITTED.getState());
     }
 
     private DBOperator convertToDBOperator(EsOperator esOperator) {
@@ -155,12 +171,4 @@ public class TransactionManager {
                 return null;
         }
     }
-//
-//    public TransactionManager.TransactionState getTransactionState(String transId) {
-//        TransactionManager.Transaction transaction = getTransaction(transId);
-//        if(transaction != null) {
-//            return transaction.getTransactionState();
-//        }
-//        return null;
-//    }
 }
