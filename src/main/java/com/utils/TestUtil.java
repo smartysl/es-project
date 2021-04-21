@@ -20,4 +20,9 @@ public class TestUtil {
         }
     }
 
+    public static void injectException() {
+        log.info("[注入故障]");
+        throw new RuntimeException();
+    }
+
 }

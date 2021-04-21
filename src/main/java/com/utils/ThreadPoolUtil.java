@@ -29,12 +29,19 @@ public class ThreadPoolUtil implements ApplicationContextAware {
         return Executors.newFixedThreadPool(10);
     }
 
+    @Bean
+    public ExecutorService snapshotThreadPool() { return Executors.newFixedThreadPool(10); }
+
     public static ExecutorService getThreadPool(String isolation) {
         if(isolation.equals("serialize")) {
             return (ExecutorService) applicationContext.getBean("singleThreadPool");
         } else{
             return (ExecutorService) applicationContext.getBean("concurrentThreadPool");
         }
+    }
+
+    public static ExecutorService getSnapshotPool() {
+        return (ExecutorService) applicationContext.getBean("snapshotThreadPool");
     }
 
 }

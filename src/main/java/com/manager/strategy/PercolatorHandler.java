@@ -3,6 +3,8 @@ package com.manager.strategy;
 import com.manager.DBOperator;
 import com.manager.TransactionManager;
 import com.service.Exceptions.ConflictException;
+import com.utils.ExceptionUtil;
+import com.utils.ThreadPoolUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -29,25 +35,8 @@ public class PercolatorHandler extends BaseHandler {
     public void preHandle(List<DBOperator> dbOperatorList, Integer transId) {
         Map<Integer, Integer> transactionStatusMap = transactionManager.queryAllTransactionStatus();
 
-        List<Integer> snapshot = new ArrayList<>();
-        for (DBOperator operator : dbOperatorList) {
-            TransactionManager.TransactionView transactionView = transactionManager.updateGlobalTransaction(
-                    operator.getIndexName(),
-                    operator.getDocumentId(),
-                    null,
-                    transactionStatusMap
-            );
-            if(!transactionView.getLastTransaction().equals(transactionView.getCurrentTransaction())) {
-                log.warn("[快照时版本不一致] 快照时有正在执行的事务,准备回滚 当前事务={}, 最新版本={}, 当前版本={}, indexName={}, docId={}",
-                        transId,
-                        transactionView.getLastTransaction(),
-                        transactionView.getCurrentTransaction(),
-                        operator.getIndexName(),
-                        operator.getDocumentId());
-                throw new ConflictException();
-            }
-            snapshot.add(transactionView.getCurrentTransaction());
-        }
+        List<Integer> snapshot = doSnapshot(dbOperatorList, transId, transactionStatusMap);
+
         log.info("[获取版本快照] 当前事务={}, 快照={}", transId, snapshot);
 
         transactionManager.beginTransaction(transId);
@@ -84,6 +73,44 @@ public class PercolatorHandler extends BaseHandler {
                 throw new ConflictException();
             }
         });
+    }
+
+    private List<Integer> doSnapshot(List<DBOperator> dbOperatorList, Integer transId, Map<Integer, Integer> transactionStatusMap) {
+        List<Callable<Integer>> tasks = dbOperatorList.stream().map(dbOperator -> (Callable<Integer>) () -> {
+            TransactionManager.TransactionView transactionView = transactionManager.updateGlobalTransaction(
+                    dbOperator.getIndexName(),
+                    dbOperator.getDocumentId(),
+                    null,
+                    transactionStatusMap
+            );
+            if(!transactionView.getLastTransaction().equals(transactionView.getCurrentTransaction())) {
+                log.warn("[快照时版本不一致] 快照时有正在执行的事务,准备回滚 当前事务={}, 最新版本={}, 当前版本={}, indexName={}, docId={}",
+                        transId,
+                        transactionView.getLastTransaction(),
+                        transactionView.getCurrentTransaction(),
+                        dbOperator.getIndexName(),
+                        dbOperator.getDocumentId());
+                throw new RuntimeException();
+            }
+            return transactionView.getCurrentTransaction();
+        }).collect(Collectors.toList());
+
+        List<Integer> snapshot = new ArrayList<>();
+        List<Future<Integer>> futures;
+        try {
+            futures = ThreadPoolUtil.getSnapshotPool().invokeAll(tasks);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+        for(Future<Integer> future : futures) {
+            try {
+                snapshot.add(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                log.warn("[快照线程执行失败] e={}", ExceptionUtil.getStackTrace(e));
+                throw new ConflictException();
+            }
+        }
+        return snapshot;
     }
 
 }

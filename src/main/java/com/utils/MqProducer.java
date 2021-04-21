@@ -40,7 +40,7 @@ public class MqProducer {
 
     public void sendBack(String data) {
         log.info("[MQ消息回放] 消息={}", data);
-        kafkaTemplate.executeInTransaction((KafkaOperations.OperationsCallback) kafkaOperations -> {
+        kafkaTemplate.executeInTransaction(kafkaOperations -> {
             try {
                 ListenableFuture<SendResult<String, Object>> sendResult = kafkaOperations.send("es-write-topic", data);
                 sendResult.get();
